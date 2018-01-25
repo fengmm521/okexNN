@@ -13,12 +13,11 @@ import timetool
 
 #当前对象主要为对k线数据分类的神经网络对象,包括数据分类网络训练，和网络保存使用
 
-class KlineNNTool(object):
+class NNKlineManger(object):
     """docstring for KlineNNTool"""
-    def __init__(self, datpth,nnconfigpth):
-        self.datapth = datpth               #训练用的数据文件所在目录
+    def __init__(self,nnconfigpth = '../data/config.json'):
+        self.datapth = '../data/nndata'               #训练用的数据文件所在目录
         self.nnconfigpth = nnconfigpth
-
 
         self.nnSaveFilePth = None
 
@@ -39,39 +38,6 @@ class KlineNNTool(object):
 
     #初始化神经网络，如果没有网络则训练一个网络
     def initObj(self):
-        pass
-
-    def create5MinNN(self):      #创建5分钟自编码器分类网络,如果文件中已存在网络，则先加载再进行训练
-        pass
-
-    def create1hourNN(self):     #创建1小时自编码器分类网络，如果文件中已存在网络，则先加载再进行训练
-        pass
-
-    def create4hourNN(self):     #创建4小时自编码器分类网络，如果文件中已存在网络，则先加载再进行训练
-        pass
-
-    def create12hourNN(self):    #创建12小时自编码器分类网络，如果文件中已存在网络，则先加载再进行训练
-        pass
-
-    def create24hourNN(self):    #创建24小时自编码器分类网络，如果文件中已存在网络，则先加载再进行训练
-        pass
-
-    def training5minNN(self):    #训练5分钟自编码分类网络，并保存到文件
-        pass
-
-    def training1hourNN(self):   #训练1小时自编码分类网络，并保存到文件
-        pass
-
-    def training4hourNN(self):   #训练4小时自编码分类网络，并保存到文件
-        pass
-
-    def training12hourNN(self):  #训练12小时自编码分类网络，并保存到文件
-        pass
-
-    def training24hourNN(self):  #训练24小时自编码分类网络，并保存到文件
-        pass
-
-    def trainingAllNN(self):     #训练总体分类神经网络，并保存到文件,输入为5分钟分类，1小时分类，4小时分类，12小时分类，24小时分类
         pass
 
     def getAddNewDataXY(self,data):   #添加一次数据到网络，返回神经网络分类坐标
