@@ -6,278 +6,424 @@
 # @Version : $Id$
 
 import os,sys
-
 import json
-import timetool
+import urllib2
+import chardet
+import hashlib
 
-#获取脚本路径
-def cur_file_dir():
-    pathx = sys.argv[0]
-    tmppath,_file = os.path.split(pathx)
-    if cmp(tmppath,'') == 0:
-        tmppath = sys.path[0]
-    #判断为脚本文件还是py2exe编译后的文件，如果是脚本文件，则返回的是脚本的目录，如果是py2exe编译后的文件，则返回的是编译后的文件路径
-    if os.path.isdir(tmppath):
-        return tmppath
-    elif os.path.isfile(tmppath):
-        return os.path.dirname(tmppath)
-    
-#获取父目录
-def GetParentPath(strPath):
-    if not strPath:
-        return None;
-    lsPath = os.path.split(strPath);
-    if lsPath[1]:
-        return lsPath[0];
-    lsPath = os.path.split(lsPath[0]);
-    return lsPath[0];
+BaseKlinePth = 'data/kline.txt'
 
-#获取目录下的所有类型文件
-def getAllExtFile(pth,fromatx = ".erl"):
-    jsondir = pth
-    jsonfilelist = []
-    for root, _dirs, files in os.walk(jsondir):
-        for filex in files:          
-            #print filex
-            name,text = os.path.splitext(filex)
-            if cmp(text,fromatx) == 0:
-                jsonArr = []
-                rootdir = pth
-                dirx = root[len(rootdir):]
-                pathName = dirx +os.sep + filex
-                jsonArr.append(pathName)
-                (newPath,_name) = os.path.split(pathName)
-                jsonArr.append(newPath)
-                jsonArr.append(name)
-                jsonfilelist.append(jsonArr)
-            elif fromatx == ".*" :
-                jsonArr = []
-                rootdir = pth
-                dirx = root[len(rootdir):]
-                pathName = dirx +os.sep + filex
-                jsonArr.append(pathName)
-                (newPath,_name) = os.path.split(pathName)
-                jsonArr.append(newPath)
-                jsonArr.append(name)
-                jsonfilelist.append(jsonArr)
-    return jsonfilelist
+def read5MimKline():
+    f = open(BaseKlinePth,'r')
+    lines = f.readlines()
+    f.close()
+    kdats = []
+    for l in lines:
+        tmpl = l.replace('\n','').replace('\r','')
+        tmpdat = json.loads(tmpl)
+        kdats.append(tmpdat)
+
+    # print len(kdats),len(kdats[0])
+    return kdats
+    #[1510590900000, 64.535, 64.564, 64.38, 64.518, 9022.0, 1399.350184200521]
+    ##时间戳，开，高，低，收，交易量，交易量转化为BTC或LTC数量
+
+def conventNewKline(dats):
+    tmps = [0]*6
+    tmps[0] = dats[-1][0]  #时间取收盘时间
+    tmps[1] = dats[0][1]  #开盘价
+    for d in dats:
+        if tmps[2] < d[2]:
+            tmps[2] = d[2] # 最高价
+        if tmps[3] == 0 or tmps[3] > d[3]:
+            tmps[3] = d[3] #最低价
+        tmps[5] += d[5]    #成交量
+    tmps[4] = dats[-1][4]  #收盘价
+
+    return tmps
+
+def create1HourKline(kdat5m):
+    h1dats = []
+
+    lenk5 = len(kdat5m)
+
+    k1hourIndexs = []
+    for n in range(len(kdat5m)):
+        tmps = []
+        if lenk5 - n >= 12:
+            sindex = n
+            eindex = n + 12
+            k1hourIndexs.append([sindex,eindex])
 
 
-#获取一个目录下的所有子目录路径
-def getAllDirs(spth):
-    files = getAllExtFile(spth,'.*')
-    makedirstmp = []
-    isOK = True
-    # 分析所有要创建的目录
-    for d in files:
-        if d[1] != '/' and (not d[1] in makedirstmp): #创建未创建的目录层级
-            tmpdir = d[1][1:]
-            tmpleves = tmpdir.split('/')
-            alldirs = getAllLevelDirs(tmpleves)
-            for dtmp in alldirs:
-                if not dtmp in makedirstmp:
-                    makedirstmp.append(dtmp)
-    return makedirstmp
-#获取目录下的所有文件路径
-def getAllFiles(spth,fromatx = '.*'):
-    files = getAllExtFile(spth,fromatx)
-    makedirstmp = []
-    isOK = True
-    # 分析所有要创建的目录
-    for d in files:
-        makedirstmp.append(d[0])
-    return makedirstmp
+    for ns in k1hourIndexs:
+        dattmps = kdat5m[ns[0]:ns[1]]
+        newdat = conventNewKline(dattmps)
+        h1dats.append(newdat)
+
+    return h1dats
 
 
-def isFile(filename):
+def create4HourKline(kdat5m):
+    hdats = []
+
+    count5m = 48 #4小时有48个5分钟
+
+    lenk5 = len(kdat5m)
+
+    k1hourIndexs = []
+    for n in range(len(kdat5m)):
+        tmps = []
+        if lenk5 - n >= count5m:
+            sindex = n
+            eindex = n + count5m
+            k1hourIndexs.append([sindex,eindex])
+
+
+    for ns in k1hourIndexs:
+        dattmps = kdat5m[ns[0]:ns[1]]
+        newdat = conventNewKline(dattmps)
+        hdats.append(newdat)
+
+    return hdats
+
+def create12HourKline(kdat5m):
+    hdats = []
+
+    count5m = 144 #12小时有144个5分钟
+
+    lenk5 = len(kdat5m)
+
+    k1hourIndexs = []
+    for n in range(len(kdat5m)):
+        tmps = []
+        if lenk5 - n >= count5m:
+            sindex = n
+            eindex = n + count5m
+            k1hourIndexs.append([sindex,eindex])
+
+
+    for ns in k1hourIndexs:
+        dattmps = kdat5m[ns[0]:ns[1]]
+        newdat = conventNewKline(dattmps)
+        hdats.append(newdat)
+
+    return hdats
+
+def create24HourKline(kdat5m):
+    hdats = []
+
+    count5m = 288 #24小时有288个5分钟
+
+    lenk5 = len(kdat5m)
+
+    k1hourIndexs = []
+    for n in range(len(kdat5m)):
+        tmps = []
+        if lenk5 - n >= count5m:
+            sindex = n
+            eindex = n + count5m
+            k1hourIndexs.append([sindex,eindex])
+
+
+    for ns in k1hourIndexs:
+        dattmps = kdat5m[ns[0]:ns[1]]
+        newdat = conventNewKline(dattmps)
+        hdats.append(newdat)
+
+    return hdats
+
+def conventStrTOUtf8(oldstr):
     try:
-        with open(filename) as f:
-            return True
-    except IOError:
+        nstr = oldstr.encode("utf-8")
+        return nstr
+    except Exception as e:
+        print 'nstr do not encode utf-8'
+    cnstrtype = chardet.detect(oldstr)['encoding']
+    utf8str =  oldstr.decode(cnstrtype).encode('utf-8')
+    return utf8str
+
+def getUrl(purl):
+    try:
+        req = urllib2.Request(purl)
+        req.add_header('User-agent', 'Mozilla 5.10')
+        res = urllib2.urlopen(req)
+        html = conventStrTOUtf8(res.read())
+        return html
+    except Exception, e:
+        print e
+    return None
+
+
+def getOneYearMaxVale():
+    #https://www.okex.com/api/v1/future_kline.do?symbol=ltc_usd&type=1day&contract_type=quarter&size=400
+    yeardatpth = 'data/yearDayData.txt'
+    if not os.path.exists(yeardatpth):
+        tmpurl = 'https://www.okex.com/api/v1/future_kline.do?symbol=ltc_usd&type=1day&contract_type=quarter&size=400'
+        dat = getUrl(tmpurl)
+        f = open(yeardatpth,'w')
+        f.write(dat)
+        f.close()
+        klines = json.loads(dat)
+        if klines:
+            maxvalve = 0.0
+            #时间戳，开，高，低，收，交易量，交易量转化为BTC或LTC数量
+            for d in klines:
+                if d[5] > maxvalve:
+                    maxvalve = d[5]
+            return maxvalve
+        else:
+            return 0
+    else:
+        f = open(yeardatpth,'r')
+        dat = f.read()
+        f.close()
+        klines = json.loads(dat)
+        if klines:
+            maxvalve = 0.0
+            #时间戳，开，高，低，收，交易量，交易量转化为BTC或LTC数量
+            for d in klines:
+                if d[5] > maxvalve:
+                    maxvalve = d[5]
+            return maxvalve
+        else:
+            return 0
+def conventForNNData(datas,valveBase,priceSalce,savepth):
+    outdatas = []
+    #时间戳，开，高，低，收，交易量
+    baseIndex = 4    #以收盘价为0基准
+    for d in datas:
+        tmps = []
+        priceBase = priceSalce*d[baseIndex]
+        tmps.append(d[0])
+        tmps.append((d[1] - d[baseIndex])/priceBase)
+        tmps.append((d[2] - d[baseIndex])/priceBase)
+        tmps.append((d[3] - d[baseIndex])/priceBase)
+        tmps.append((d[4] - d[baseIndex])/priceBase)
+        tmps.append(d[5]/valveBase)
+        outdatas.append(tmps)
+
+    outstr = json.dumps(outdatas)
+    f = open(savepth,'w')
+    f.write(outstr)
+    f.close()
+    print savepth
+
+prekline5mpth = 'data/perdata/kline5m.txt'
+perkline1hpth = 'data/perdata/kline1h.txt'
+perkline4hpth = 'data/perdata/kline4h.txt'
+perkline12hpth = 'data/perdata/kline12h.txt'
+perkline24hpth = 'data/perdata/kline24h.txt'
+
+def conventAllNNdata():
+
+
+    maxv = getOneYearMaxVale()
+    if maxv < 0:
         return False
 
-def finddir(arg,dirname,filenames):
-    name,text = os.path.split(dirname)
-    dirnametmp = str(dirname)
-    if text and text[0] == '.':
-        print dirname
-        print filenames
-        os.system('rm -r %s'%(dirname))
-        return
-    elif filenames:
-        for f in filenames:
-            if f[0] == '.' and isFile(dirname + f):
-                fpthtmp = dirname + f
-                if f.find(' '):
-                    nf = f.replace(' ','\ ')
-                    fpthtmp = dirname + nf
-                print dirname + f
-                os.system('rm  %s'%(fpthtmp))
+    kdat5m = read5MimKline()
+    v5m =  maxv/8.0            #5分钟的基础成交量取400天中最大一天成交量的八分之一
+    price5mbase = 0.2          #5分钟的价格最大变化标准化基数为收盘价的20%
+    conventForNNData(kdat5m, v5m, price5mbase,prekline5mpth)
 
-#删除所有pth目录下的所有"."开头的文件名和目录名
-def removeProjectAllHideDir(pth):
-    alldirs = getAllDirs(pth)
-    if not ('/' in alldirs):
-        alldirs.append('/')
-    for d in alldirs:
-        tmpth = pth + d
-        os.path.walk(tmpth, finddir, 0)
+    k1hours = create1HourKline(kdat5m)
+    v1h = maxv/4.0              #1小时基础成交量取400天中最大一天成交量的四分之一
+    price1hbase = 0.4          #1小时的价格最大变化标准化基数为收盘价的40%
+    conventForNNData(k1hours, v1h,price1hbase, perkline1hpth)
 
+    k4hours = create4HourKline(kdat5m)
+    v4h = maxv/2                #4小时基础成交量取400天中最大一天成交量的二分之一
+    price4hbase = 0.6          #4小时的价格最大变化标准化基数为收盘价的60%
+    conventForNNData(k4hours, v4h,price4hbase, perkline4hpth)
 
+    k12hours = create12HourKline(kdat5m)
+    v12h = maxv                 #12小时基础成交量取400天中最大一天成交量
+    price12hbase = 0.8          #12小时的价格最大变化标准化基数为收盘价的80%
+    conventForNNData(k12hours, v12h,price12hbase, perkline12hpth)
 
-#获取一个路径中所包含的所有目录及子目录
-def getAllLevelDirs(dirpths):
-    dirleves = []
-    dirtmp = ''
-    for d in dirpths:
-        dirtmp += '/' + d
-        dirleves.append(dirtmp)
-    return dirleves
+    k24hours = create24HourKline(kdat5m)
+    v24h = maxv*2.0             #24小最基础成交量取400天中最大成交量的2倍
+    price24hbase = 1.0          #24小时的价格最大变化标准化基数为收盘价的100%
+    conventForNNData(k24hours, v24h,price24hbase, perkline24hpth)
 
-#在outpth目录下创建ndir路径中的所有目录，是否使用决对路径
-def makeDir(outpth,ndir):
-    tmpdir = ''
-    if ndir[0] == '/':
-        tmpdir = outpth + ndir
-    else:
-        tmpdir = outpth + '/' + ndir
-    print tmpdir
-    if not os.path.exists(tmpdir):
-        os.mkdir(tmpdir)
+    return True
 
-# 创建一个目录下的所有子目录到另一个目录
-def createDirs(spth,tpth):
-    files = getAllExtFile(spth,'.*')
-    makedirstmp = []
-    isOK = True
-    # 分析所有要创建的目录
-    tmpfpth = fpth
-    for d in files:
-        if d[1] != '/' and (not d[1] in makedirstmp): #创建未创建的目录层级
-            tmpdir = d[1][1:]
-            tmpleves = tmpdir.split('/')
-            alldirs = getAllLevelDirs(tmpleves)
-            for dtmp in alldirs:
-                if not dtmp in makedirstmp:
-                    makeDir(tpth,dtmp)
-                    makedirstmp.append(dtmp)
+# prekline5mpth = 'data/perdata/kline5m.txt'
+# perkline1hpth = 'data/perdata/kline1h.txt'
+# perkline4hpth = 'data/perdata/kline4h.txt'
+# perkline12hpth = 'data/perdata/kline12h.txt'
+# perkline24hpth = 'data/perdata/kline24h.txt'
 
-# 替换文件名
-def replaceFileName(path,sname,replaceStr,tostr):
-    a = sname
-    tmpname = a.replace(replaceStr, tostr)
-    outpath = path + tmpname
-    oldpath = path + sname
-    cmd = "mv %s %s"%(oldpath,outpath)
-    print cmd
-    os.system("mv %s %s"%(oldpath,outpath))
+trainingAllpth = 'data/nndata/data24h12h4h1h5m_10.txt' 
+trainingOlay5mPth = 'data/nndata/data5m_10.txt'
+trainingOlay1hPth = 'data/nndata/data1h_10.txt'
+trainingOlay4hPth = 'data/nndata/data4h_10.txt'
+trainingOlay12hPth = 'data/nndata/data12h_10.txt'
+trainingOlay24hPth = 'data/nndata/data24h_10.txt'
 
-# 替换目录下的文件名中某个字符串为其他字符串
-def renameDir(sdir,replacestr,tostr,exittype):
-    files = getAllExtFile(sdir,fromatx = exittype)
-    allfilepath = []
-    for f in files:
-        tmppath = sdir + f[1]
-        filename = f[2] + exittype
-        allfilepath.append([tmppath,filename])
-    for p in allfilepath:
-        replaceFileName(p[0], p[1], replacestr, tostr)
+def saveListDataToPth(datas,pth):
+    print pth
+    outstr = json.dumps(datas)
+    f = open(pth,'w')
+    f.write(outstr)
+    f.close()
 
 
-def conventFileName(fname):
-    tmp = fname.split('/')[-1]
-    fname = tmp.split('.')[0]
-    k = timetool.conventDayStrAdd_(fname)
-    return k
+def createTrainingNNData(trainDcount = 10):   #默认取10个数据为一组进行训练
+    f = open(perkline24hpth,'r')
+    tmpstr = f.read()
+    f.close()
+    h24dats = json.loads(tmpstr)
+
+    lendata = len(h24dats)
+
+    f = open(perkline12hpth,'r')
+    tmpstr = f.read()
+    f.close()
+    h12dats = json.loads(tmpstr)
+    h12dats = h12dats[-lendata:]
+
+    f = open(perkline4hpth,'r')
+    tmpstr = f.read()
+    f.close()
+    h4dats = json.loads(tmpstr)
+    h4dats = h4dats[-lendata:]
+
+    f = open(perkline1hpth,'r')
+    tmpstr = f.read()
+    f.close()
+    h1dats = json.loads(tmpstr)
+    h1dats = h1dats[-lendata:]
+
+    f = open(prekline5mpth,'r')
+    tmpstr = f.read()
+    f.close()
+    m5dats = json.loads(tmpstr)
+    m5dats = m5dats[-lendata:]
+
+    print '训练数据总长度',lendata
+    dataIndexs = []
+    for i in range(lendata):
+        if lendata - i >= trainDcount:
+            dataIndexs.append([i,i + trainDcount])
+
+    trdatas = []
+    trm5datas = []
+    trh1datas = []
+    trh4datas = []
+    trh12datas = []
+    trh24datas = []
+    print dataIndexs[-1]
+    for ix in dataIndexs:
+        h24tmps = h24dats[ix[0]:ix[1]]
+        oh24tmps = []
+        for d in h24tmps:
+            oh24tmps += d[1:]
+        trh24datas.append(oh24tmps)
+
+        h12tmps = h12dats[ix[0]:ix[1]]
+        oh12tmps = []
+        for d in h12tmps:
+            oh12tmps += d[1:]
+        trh12datas.append(oh12tmps)
+
+        h4tmps = h4dats[ix[0]:ix[1]]
+        oh4tmps = []
+        for d in h4tmps:
+            oh4tmps += d[1:]
+        trh4datas.append(oh4tmps)
+
+        h1tmps = h1dats[ix[0]:ix[1]]
+        oh1tmps = []
+        for d in h1tmps:
+            oh1tmps += d[1:]
+        trh1datas.append(oh1tmps)
+
+        m5tmps = m5dats[ix[0]:ix[1]]
+        om5tmps = []
+        for d in m5tmps:
+            om5tmps += d[1:]
+        trm5datas.append(om5tmps)
+
+        outtmp = oh24tmps + oh12tmps + oh4tmps + oh1tmps + om5tmps
+        trdatas.append(outtmp)
 
 
-def downCmdRun(days):
+    saveListDataToPth(trh24datas, trainingOlay24hPth)   #单独保存24小时数据
+    saveListDataToPth(trh12datas, trainingOlay12hPth)   #单独保存12小时数据
+    saveListDataToPth(trh4datas, trainingOlay4hPth)     #单独保存4小时数据
+    saveListDataToPth(trh1datas, trainingOlay1hPth)     #单独保存1小时数据
+    saveListDataToPth(trm5datas, trainingOlay5mPth)     #单独保存5分钟数据
 
-    if not days:
-        print 'all data is downloaded...'
-        return
-    cmd = '/bin/sh /Users/mage/Documents/btc/klineokex/downkline.sh '
+    saveListDataToPth(trdatas, trainingAllpth)          #保存所有组合数据
 
-    for d in days:
-        tmpcmd = cmd + d + '.txt'
-        os.system(tmpcmd)
-
-
-def downAllKlineDataFromServer():
-
-    files = getAllFiles('out','.txt')
-    print files
-    klines = []
-    lasttime = 0
-    sntimes = []
-
-    tmpfiles = {}
-
-    for p in files:
-        k = conventFileName(p)
-        tmpfiles[k] = p
-    fs = tmpfiles.keys()
-    fs.sort(reverse = False)
-
-    lastday = fs[-1].split('/')[-1].split('.')[0]
-
-    print lastday
-
-    days = timetool.getDateDaysFromOneDate(lastday)
-    downdays = days[:-1]
-    downCmdRun(downdays)
+hash5mklinefile = 'data/klinehash.txt'
 
 def main():
+    f = open('data/kline.txt','r')
+    klinehash = hashlib.sha256(f.read()).hexdigest()
 
-    downAllKlineDataFromServer()
-
-    files = getAllFiles('out','.txt')
-    print files
-    klines = []
-    lasttime = 0
-    sntimes = []
-
-    tmpfiles = {}
-
-    for p in files:
-        k = conventFileName(p)
-        tmpfiles[k] = p
-    fs = tmpfiles.keys()
-    fs.sort(reverse = False)
-
-    for k in fs:
-        p = tmpfiles[k]
-        tpth = 'out' + p
-        f = open(tpth,'r')
-        tmpk = f.read()
+    isKlineChange = True
+    if not os.path.exists(hash5mklinefile):
+        conventAllNNdata()
+        f = open(hash5mklinefile,'w')
+        f.write(klinehash)
         f.close()
-        klinetmps = json.loads(tmpk)
-        #[1510588800000,65.146,65.146,64.966,65.012,5616.0,863.44491422901]
-        #时间戳，开，高，低，收，交易量，交易量转化为BTC或LTC数量
-        # print len(klinetmps)
-        
-        sntimes.append([klinetmps[0][0],klinetmps[-1][0]])
-        startn = 0
-        for n in range(len(klinetmps)):
-            if lasttime == klinetmps[n][0]:
-                startn = n + 1
-        if klines:
-            print klines[-1],klinetmps[startn-1]
-        klines += klinetmps[startn:-1]
-        lasttime = klines[-1][0]
-        
-    print len(klines)
-    # print sntimes
+    else:
+        f = open(hash5mklinefile,'r')
+        lasthash = f.read()
+        f.close()
+        if lasthash != klinehash:
+            conventAllNNdata()
+            f = open(hash5mklinefile,'w')
+            f.write(klinehash)
+            f.close()
+        else:
+            print 'k线数据未改变，不会生成数的其他k线数据'
+            isKlineChange = False
+    if isKlineChange:
+        print 'k线数据发生改变，开始生成新的训练数据'
+        createTrainingNNData()
+        print '新的训练数据生成完成，保存在:%s'%(training5mpth)
+
+    # createTrainingNNData()
+
+
+def test():
+    maxvalue = getOneYearMaxVale()
+    print maxvalue
+    kdat5m = read5MimKline()
+    print '5mim clount=',len(kdat5m)
+    k1hours = create1HourKline(kdat5m)
+    print '1hour count=',len(k1hours)
+    print k1hours[0]
+    print k1hours[-1]
+
+
+    print '--------------'
+    k4hours = create4HourKline(kdat5m)
+    print '4hour count=',len(k4hours),len(kdat5m) - len(k4hours)
+    print k4hours[0]
+    print k4hours[-1]
+
+    print '--------------'
+    k4hours = create12HourKline(kdat5m)
+    print '12hour count=',len(k4hours),len(kdat5m) - len(k4hours)
+    print k4hours[0]
+    print k4hours[-1]
+
+    print '--------------'
+    k4hours = create24HourKline(kdat5m)
+    print '24hour count=',len(k4hours),len(kdat5m) - len(k4hours)
+    print k4hours[0]
+    print k4hours[-1]
+
 #测试
 if __name__ == '__main__':
-    args = sys.argv
-    fpth = ''
-    if len(args) == 2 :
-        if os.path.exists(args[1]):
-            fpth = args[1]
-        else:
-            print "请加上要转码的文件路径"
-    else:
-        print "请加上要转码的文件路径"
-        main()
-    
+    # a = [0] * 6
+    # hour1s = range(12)
+    # print hour1s
+    # print a
+    main()
+    # test()

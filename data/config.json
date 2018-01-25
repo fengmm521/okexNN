@@ -1,0 +1,40 @@
+
+{
+    "nnconfig":{
+        "nn1":{
+            "klinepth":"okkline/kline.txt",
+            "nnsave":"okkline/nn1.txt",
+            "klineS1":{"klineData":10,"layerEncode":[120,60,32,8],"mLayerNode":3,"layerDecode":[8,32,60,120],"state":"5minute","baseLine":1},
+            "klineS2":{"klineData":10,"layerEncode":[120,60,32,8],"mLayerNode":3,"layerDecode":[8,32,60,120],"state":"1hour","baseLine":12},
+            "klineS3":{"klineData":10,"layerEncode":[120,60,32,8],"mLayerNode":3,"layerDecode":[8,32,60,120],"state":"4hour","baseLine":48},
+            "klineS4":{"klineData":10,"layerEncode":[120,60,32,8],"mLayerNode":3,"layerDecode":[8,32,60,120],"state":"12hour","baseLine":144},
+            "klineS5":{"klineData":10,"layerEncode":[120,60,32,8],"mLayerNode":3,"layerDecode":[8,32,60,120],"state":"24hour","baseLine":288},
+            "stateNode":{"layerEncode":[90,32,8],"mLayerNode":2,"layerDecode":[8,32,90]}
+        },
+        "nn2":{
+            "klinepth":"okkline/kline.txt",
+            "nnsave":"okkline/nn2.txt",
+            "klineS1":{"klineData":20,"layerEncode":[240,120,64,16],"mLayerNode":4,"layerDecode":[16,64,120,240],"state":"5minute","baseLine":1},
+            "klineS2":{"klineData":20,"layerEncode":[240,120,64,16],"mLayerNode":4,"layerDecode":[16,64,120,240],"state":"1hour","baseLine":12},
+            "klineS3":{"klineData":20,"layerEncode":[240,120,64,16],"mLayerNode":4,"layerDecode":[16,64,120,240],"state":"4hour","baseLine":48},
+            "klineS4":{"klineData":20,"layerEncode":[240,120,64,16],"mLayerNode":4,"layerDecode":[16,64,120,240],"state":"12hour","baseLine":144},
+            "klineS5":{"klineData":20,"layerEncode":[240,120,64,16],"mLayerNode":4,"layerDecode":[16,64,120,240],"state":"24hour","baseLine":288},
+            "stateNode":{"layerEncode":[90,32,8],"mLayerNode":2,"layerDecode":[8,32,90]}
+        },
+        "nn3":{
+            "klinepth":"okkline/kline.txt",
+            "nnsave":"okkline/nn3.txt",
+            "klineS1":{"klineData":10,"layerEncode":[120,60,32,8],"mLayerNode":2,"layerDecode":[8,32,60,120],"state":"5minute","baseLine":1},
+        },
+        "nn4":{
+            "klinepth":"okkline/kline.txt",
+            "nnsave":"okkline/nn4.txt",
+            "klineS1":{"klineData":10,"layerEncode":[120,60,32,8],"mLayerNode":2,"layerDecode":[8,32,60,120],"state":"1hour","baseLine":12},
+        }
+    },
+    "mtclconfig":{
+        "mtclsave":"okkline/mtcl.txt",
+        "changeNumber":0.5,
+        "stateside":10
+    }
+}

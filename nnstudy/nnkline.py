@@ -28,9 +28,9 @@ class KlineNNTool(object):
         self.h12NN = None                   #12小时网络
         self.h24NN = None                   #24小时网络
         
-        self.fenleix = 10                   #分类x行数量    
+        self.fenleix = 10                   #分类x行数量    ,暂时对k线形态分为100个类
         self.fenleiy = 10                   #分类y列数量
-        self.fenleiIndex = 0                #分类编号
+        self.fenleiIndex = 0                #分类编号,编号由分类后得到了x,y坐标生成(10*x+y)的值
 
         #最后一次训练的k线数据时间,初始化时，会查找当前的新数据是否比原来数据新，如果新，则使用新数据对网络进行更新训练
         self.lastKlineTime = 0              
