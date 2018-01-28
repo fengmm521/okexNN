@@ -215,6 +215,9 @@ perkline4hpth = 'data/perdata/kline4h.txt'
 perkline12hpth = 'data/perdata/kline12h.txt'
 perkline24hpth = 'data/perdata/kline24h.txt'
 
+if not os.path.exists('data/perdata'):
+    os.mkdir('data/perdata')
+    os.mkdir('data/nndata')
 def conventAllNNdata():
 
 
@@ -261,6 +264,8 @@ trainingOlay1hPth = 'data/nndata/data1h_10.txt'
 trainingOlay4hPth = 'data/nndata/data4h_10.txt'
 trainingOlay12hPth = 'data/nndata/data12h_10.txt'
 trainingOlay24hPth = 'data/nndata/data24h_10.txt'
+
+training5mpth = 'data/nndata'
 
 def saveListDataToPth(datas,pth):
     print pth
