@@ -1,9 +1,7 @@
-#!/usr/bin/env python
 # View more python learning tutorial on my Youtube and Youku channel!!!
 
 # My tutorial website: https://morvanzhou.github.io/tutorials/
-# PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
-# export PATH
+
 from __future__ import division, print_function, absolute_import
 
 import tensorflow as tf
@@ -14,11 +12,11 @@ import matplotlib.pyplot as plt
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("/tmp/data/", one_hot=False)
 
-
+'''
 # Visualize decoder setting
 # Parameters
 learning_rate = 0.01
-training_epochs = 5
+training_epochs = 50
 batch_size = 256
 display_step = 1
 examples_to_show = 10
@@ -65,14 +63,14 @@ def decoder(x):
     layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['decoder_h2']),
                                    biases['decoder_b2']))
     return layer_2
+'''
 
 
-"""
 
 # Visualize encoder setting
 # Parameters
 learning_rate = 0.01    # 0.01 this learning rate will be better! Tested
-training_epochs = 10
+training_epochs = 100
 batch_size = 256
 display_step = 1
 
@@ -134,7 +132,7 @@ def decoder(x):
     layer_4 = tf.nn.sigmoid(tf.add(tf.matmul(layer_3, weights['decoder_h4']),
                                 biases['decoder_b4']))
     return layer_4
-"""
+
 
 # Construct model
 encoder_op = encoder(X)
@@ -175,17 +173,17 @@ with tf.Session() as sess:
     print("Optimization Finished!")
 
     # # Applying encode and decode over test set
-    encode_decode = sess.run(
-        y_pred, feed_dict={X: mnist.test.images[:examples_to_show]})
-    # Compare original images with their reconstructions
-    f, a = plt.subplots(2, 10, figsize=(10, 2))
-    for i in range(examples_to_show):
-        a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
-        a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
-    plt.show()
-
-    # encoder_result = sess.run(encoder_op, feed_dict={X: mnist.test.images})
-    # plt.scatter(encoder_result[:, 0], encoder_result[:, 1], c=mnist.test.labels)
-    # plt.colorbar()
+    # encode_decode = sess.run(
+    #     y_pred, feed_dict={X: mnist.test.images[:examples_to_show]})
+    # # Compare original images with their reconstructions
+    # f, a = plt.subplots(2, 10, figsize=(10, 2))
+    # for i in range(examples_to_show):
+    #     a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
+    #     a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
     # plt.show()
+
+    encoder_result = sess.run(encoder_op, feed_dict={X: mnist.test.images})
+    plt.scatter(encoder_result[:, 0], encoder_result[:, 1], c=mnist.test.labels)
+    plt.colorbar()
+    plt.show()
 
