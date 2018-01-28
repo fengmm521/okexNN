@@ -153,7 +153,7 @@ class TFNNTool(object):
 		# self.flogPlaceHolder = self.createPlaceHolder(tf.float32,(None,self.outSize),'y-input')
 
 
-	def setCross_entropy(self,pReduction_indices = [1]):
+	def setCross_entropy(self,pReduction_indices = None):
 		self.flogPlaceHolder = self.createPlaceHolder(tf.float32, (None,self.outSize), 'y-input')
 		self.cross_entropy = -tf.reduce_mean(tf.reduce_sum( self.flogPlaceHolder * tf.log(self.y),reduction_indices=pReduction_indices))
 
@@ -174,6 +174,8 @@ class TFNNTool(object):
 		jstr = f.read()
 		f.close()
 		dats = json.loads(jstr)
+		self.inputDatas = dats
+		self.outDatas = self.inputDatas
 		print len(dats)
 
 	def saveOutData(self,savePth):
@@ -183,10 +185,45 @@ m5datapth = '../data/nndata/data5m_10.txt'
 
 def main():
 	nntool = TFNNTool()
-	nntool.createEncodeSelfNNWithNetSize([120,60,32,8],2,[8,32,60,120],tf.nn.tanh)  #四层网络，有两个隐层
-	nntool.setCross_entropy()
-	nntool.setTrain_step(0.02)
+	nntool.createEncodeSelfNNWithNetSize([50,120,60,32,8],2,[8,32,60,120,50],tf.nn.tanh)  #四层网络，有两个隐层
+	nntool.setCross_entropy(None)
+	nntool.setTrain_step(batch_size = 100,learning_rate = 0.01)
 	nntool.initData(m5datapth)
+
+	X = nntool.inputDatas
+	Y = nntool.outDatas
+
+	dataset_size = len(X)
+
+	batch_size = nntool.batch_size
+
+	train_step = nntool.train_step
+
+	cross_entropy = nntool.cross_entropy
+
+	x = nntool.inPlaceHolder
+	y_ = nntool.flogPlaceHolder
+
+	with tf.Session() as sess:
+		init_op = tf.global_variables_initializer()
+		sess.run(init_op)
+		'''
+		w1 = [[-0.81131822,1.48459876,0.06532937]]
+				[-2.44270396,0.0992484,0.59122431]
+		w2 = [[-0.81131822],[1.48459876],[0.06532937]]
+
+		'''
+
+		STEPS = 50000
+		for i in range(STEPS):
+			start = (i * batch_size) % dataset_size
+			end = min(start + batch_size,dataset_size)
+			sess.run(train_step,feed_dict={x:X[start:end],y_:Y[start:end]})
+
+			if i % 1000 == 0:
+				total_cross_entropy = sess.run(cross_entropy,feed_dict={x:X,y_:Y})
+				print "After %d training step(s),cross entropy on all data is %g"%(i,total_cross_entropy)
+
 	# X = rdm.rand(dataset_size, 2)
 	# Y = [[int(x1+x2 >= 0.8 and x1 + x2 <= 1.2),int(x1+x2>1.2 or x1 + x2 <0.8)] for (x1,x2) in X]
 
