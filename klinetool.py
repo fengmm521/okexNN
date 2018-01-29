@@ -63,6 +63,15 @@ def create1HourKline(kdat5m):
 
     return h1dats
 
+def savetestlist(dats,savename):
+    outstrs = ''
+    for d in dats:
+        outstrs += str(d) + '\n'
+    spth = 'data/perdata/'+ savename
+    f = open(spth,'w')
+    f.write(outstrs)
+    f.close()
+
 
 def create4HourKline(kdat5m):
     hdats = []
@@ -84,6 +93,10 @@ def create4HourKline(kdat5m):
         dattmps = kdat5m[ns[0]:ns[1]]
         newdat = conventNewKline(dattmps)
         hdats.append(newdat)
+
+
+    # savetestlist(hdats, '4h.txt')
+    
 
     return hdats
 
@@ -201,7 +214,19 @@ def conventForNNData(datas,valveBase,priceSalce,savepth):
         tmps.append((d[3] - d[baseIndex])/priceBase)
         tmps.append((d[4] - d[baseIndex])/priceBase)
         tmps.append(d[5]/valveBase)
+        if tmps[1] > 1.0:
+            print 'ddddd1'
+        if tmps[2] > 1.0:
+            print 'ddddd2'
+        if tmps[3] > 1.0:
+            print 'ddddd3'
+        if tmps[4] > 1.0:
+            print 'ddddd4'
+        if tmps[5] > 1.0:
+            print 'ddddd5',d[5],valveBase
         outdatas.append(tmps)
+
+    # savetestlist(outdatas, '4h2.txt')
 
     outstr = json.dumps(outdatas)
     f = open(savepth,'w')
@@ -236,7 +261,8 @@ def conventAllNNdata():
     conventForNNData(k1hours, v1h,price1hbase, perkline1hpth)
 
     k4hours = create4HourKline(kdat5m)
-    v4h = maxv/2                #4小时基础成交量取400天中最大一天成交量的二分之一
+
+    v4h = maxv                 #4小时基础成交量取400天中最大一天成交量的二分之一
     price4hbase = 0.6          #4小时的价格最大变化标准化基数为收盘价的60%
     conventForNNData(k4hours, v4h,price4hbase, perkline4hpth)
 
@@ -249,6 +275,9 @@ def conventAllNNdata():
     v24h = maxv*2.0             #24小最基础成交量取400天中最大成交量的2倍
     price24hbase = 1.0          #24小时的价格最大变化标准化基数为收盘价的100%
     conventForNNData(k24hours, v24h,price24hbase, perkline24hpth)
+
+
+
 
     return True
 
@@ -363,6 +392,45 @@ def createTrainingNNData(trainDcount = 10):   #默认取10个数据为一组进�
 
     saveListDataToPth(trdatas, trainingAllpth)          #保存所有组合数据
 
+
+
+def createTrainingSigmoidData(datpth,savepth):
+    f = open(datpth,'r')
+    jstr = f.read()
+    f.close()
+    dats = json.loads(jstr)
+    outs = []
+    lcount = 0
+    for d in dats:
+
+        tmps = []
+        llcount = 0
+        for t in d:
+            tmp = (t/2.0) + 0.5
+            if tmp < 0:
+                tmp = 0.0
+                print('is small')
+            if tmp > 1.0:
+                print tmp,t
+                print datpth
+                print('is big',lcount,llcount)
+                tmp = 1.0
+
+            tmps.append(tmp)
+            llcount += 1
+        outs.append(tmps)
+        lcount += 1
+    ostr = json.dumps(outs)
+    f = open(savepth,'w')
+    f.write(ostr)
+    f.close()
+def createAllTrainingSigmoidData():
+    pths = [trainingOlay5mPth,trainingOlay1hPth,trainingOlay4hPth,trainingOlay12hPth,trainingOlay24hPth]
+    for p in pths:
+        pthtmp,pname = os.path.split(p)
+        savepth = pthtmp + os.sep + 'sigmoid_' + pname
+        createTrainingSigmoidData(p, savepth)
+
 hash5mklinefile = 'data/klinehash.txt'
 
 def main():
@@ -390,9 +458,11 @@ def main():
     if isKlineChange:
         print 'k线数据发生改变，开始生成新的训练数据'
         createTrainingNNData()
+        createAllTrainingSigmoidData()
         print '新的训练数据生成完成，保存在:%s'%(training5mpth)
-
-    # createTrainingNNData()
+    conventAllNNdata()
+    createTrainingNNData()
+    createAllTrainingSigmoidData()
 
 
 def test():
