@@ -18,12 +18,12 @@ import numpy
 
 '''
 
-if os.path.exists('nnsave'):
+if not os.path.exists('nnsave'):
     os.mkdir('nnsave')
 
 
 
-if os.path.exists('../data/nnout'):
+if not os.path.exists('../data/nnout'):
     os.mkdir('../data/nnout')
 
 # Visualize encoder setting
@@ -39,9 +39,13 @@ class NNCreateTool(object):
         self.datapth = datapth
         self.savepth = savepth
 
+        
+
+        self.isInitFromFile = False
         if (not isReTrain) and os.path.exists(self.savepth):
             self.initNNFromFile()
-            return
+            self.isInitFromFile = True
+            
 
         self.inSize = self.enSizes[0]
 
@@ -49,7 +53,9 @@ class NNCreateTool(object):
         self.middleIdx = len(self.enSizes)
         self.layerCount = len(self.allSizes)
 
-        
+        if self.isInitFromFile:
+            self.X = tf.placeholder("float", [None, self.inSize])
+            return
 
         self.weights = {}
         self.biases = {}
@@ -61,7 +67,7 @@ class NNCreateTool(object):
         self.outLayer = None
         self.yLayer = None
 
-        self.X = tf.placeholder("float", [None, self.inSize])
+        
 
         self.initWeights()
         self.initEncoder(self.X)
@@ -94,12 +100,14 @@ class NNCreateTool(object):
         self.weights = {}
         self.biases = {}
 
+        print(len(ws),ws.keys())
+
         for n in range(len(ws)):
-            w = ws[n]
+            w = ws[str(n)]
             self.weights[n] = tf.constant(numpy.array(w),dtype=tf.float32)
 
         for n in range(len(bs)):
-            b = bs[n]
+            b = bs[str(n)]
             self.biases[n] = tf.constant(numpy.array(b),dtype=tf.float32)
 
     def initNNWithList(self,wlist,blist):
@@ -121,14 +129,40 @@ class NNCreateTool(object):
             x = tf.constant(data,shape=[1,self.inSize],dtype=tf.float32)
             self.initEncoder(x)
 
+            outlist = []
             with tf.Session() as sess:
                 out = sess.run(self.outLayer)
-                print(out)
+                outlist = out.tolist()
+            return outlist[0]
         else:
             print('input data shap erro,input:%d'%(self.inSize))
             return None
 
+    def getDatasTypeIndex(self,datas):
+        if len(datas[0]) == self.inSize:
 
+            x = tf.placeholder("float", [None, self.inSize])
+            self.initEncoder(x)
+
+            outlist = []
+            with tf.Session() as sess:
+                if int((tf.__version__).split('.')[1]) < 12 and int((tf.__version__).split('.')[0]) < 1:
+                    init = tf.initialize_all_variables()
+                else:
+                    init = tf.global_variables_initializer()
+
+                for d in datas:
+                    batch_xs = [d]
+                    # print(len(batch_xs))
+                    out = sess.run(self.outLayer, feed_dict={x: batch_xs})
+                    # dattmp = out.tolist()[0]
+                    # otmp0 = (dattmp[0] * 10000) - 6000
+                    # otmp1 = (dattmp[1] * 10000) - 2500
+                    outlist.append(out.tolist())
+            return outlist
+        else:
+            print('input data shap erro,input:%d'%(self.inSize))
+            return None
 
     def initWeights(self):
         
@@ -167,7 +201,9 @@ class NNCreateTool(object):
         self.yLayer = self.deCodeLayers[-1]
 
         
-    def TrainingWithConfig(self,learning_rate = 0.0001,trStep = 3800,batch_size = 300,display_step = 100):
+    def TrainingWithConfig(self,learning_rate = 0.0001,trStep = 5800,batch_size = 300,display_step = 100):
+        if self.isInitFromFile:
+            return
         self.training_epochs = trStep
         self.batch_size = batch_size
         self.display_step = display_step
@@ -177,8 +213,13 @@ class NNCreateTool(object):
         y_pred = self.yLayer
 
 
-        self.cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2.0))
+        # self.cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2.0))
+        #self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cost)
+
+
+        self.cost = 0.5*tf.reduce_mean(tf.pow(tf.subtract(y_true,y_pred),2.0))
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cost)
+        
         # optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost)
         # optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
         with tf.Session() as sess:
@@ -235,12 +276,41 @@ class NNCreateTool(object):
     def drawData(self):
         pass
 
+
+def savelistToFileForJson(datas,savepth):
+    ostr = json.dumps(datas)
+    f = open(savepth,'w')
+    f.write(ostr)
+    f.close()
+
+
+def savelistToFileForLines(datas,savepth):
+    ostr = ''
+
+    f = open(savepth,'w')
+
+    for d in datas:
+        ostr += str(d) + '\n'
+    ostr = ostr[:-1]
+    f.write(ostr)
+    f.close()
+
 def main():
 
-    nnctool = NNCreateTool([50,120,60,32,10], 2, [10,32,60,120,50])
-    nnctool.TrainingWithConfig()
-    tmpdata = nnctool.trData[0]
-    nnctool.getDataTypeIndex(tmpdata)
+    nnctool = NNCreateTool([50,120,60,32,10], 2, [10,32,60,120,50],isReTrain = False)
+    tmpdatas = nnctool.initData()
+    outs = nnctool.getDatasTypeIndex(tmpdatas)
+    outdatas = []
+    for d in outs:
+        tmp0 = (d[0][0] * 10000) - 6000 - (11.45/2)
+        tmp1 = (d[0][1] * 10000) - 2500 - (552/2)
+        outdatas.append([tmp0,tmp1])
+        
+
+    
+    savelistToFileForJson(outdatas, '../data/nnout/kline5out.json')
+    savelistToFileForLines(outdatas, '../data/nnout/kline5lines.txt')
+
 if __name__ == '__main__':
     main()
 
