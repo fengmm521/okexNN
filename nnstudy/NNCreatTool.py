@@ -307,7 +307,7 @@ def main():
         outdatas.append([tmp0,tmp1])
         
 
-    
+    print(outdatas[0])
     savelistToFileForJson(outdatas, '../data/nnout/kline5out.json')
     savelistToFileForLines(outdatas, '../data/nnout/kline5lines.txt')
 

@@ -37,7 +37,57 @@ def getLeath(x,y):
     l = math.sqrt(x*x + y*y)
     return l
 
+def saveListWithJson(datas,jsonpth):
+    ostr = json.dumps(datas)
+    f = open(jsonpth,'w')
+    f.write(ostr)
+    f.close()
+
+def saveListWithLineTxt(datas,txtpth):
+    ostr = ''
+
+    for d in datas:
+        ostr += str(d) + '\n'
+
+    ostr = ostr[:-1]
+    f = open(txtpth,'w')
+    f.write(ostr)
+    f.close()
+
+
+
+#将数据处理加上其也时间数据，方便蒙特卡罗算法
+def conventDataForMTCL():
+    koutdatas = readout5Data()
+    dlen = len(koutdatas)
+    klinedats = read5MimKline()[-dlen:]
+    
+    print len(klinedats),len(koutdatas)
+
+    ndatas = []
+
+    for n in range(len(koutdatas)):
+        d = koutdatas[n]
+        k = klinedats[n]
+        ttime = timetool.getNowDate(int(k[0])/1000)
+        #数据状态分配方法，(x + 2000) * 10000 + (y + 2000)
+        # ds = int(((d[0]/10) + 200) * 1000 + ((d[1]/10) + 200)) #数据量太少，获得相同状态过少
+        # ds = int(((d[0]/20) + 100) * 1000 + ((d[1]/20) + 100)) #数据量太少
+        ds = int(((d[0]/50) + 50) * 500 + ((d[1]/50) + 50))
+        tmpd = [ds,d,k,str(ttime)]
+        ndatas.append(tmpd)
+
+    jsonpth = 'data/nnout/allout.json'
+    txtpth = 'data/nnout/allout.txt'
+    saveListWithJson(ndatas, jsonpth)
+    saveListWithLineTxt(ndatas, txtpth)
+
+
 def main():
+    conventDataForMTCL()
+
+
+def test():
     koutdatas = readout5Data()
     dlen = len(koutdatas)
     klinedats = read5MimKline()[-dlen:]
